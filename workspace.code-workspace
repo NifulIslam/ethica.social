@@ -1,0 +1,30 @@
+{
+	"folders": [
+		{
+			"path": "../../../../spring 2022/os/before mid"
+		},
+		{
+			"path": "../../../../../non academic/codes-20220212T110951Z-001/codes"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"iostream": "cpp",
+			"array": "cpp",
+			"deque": "cpp",
+			"forward_list": "cpp",
+			"list": "cpp",
+			"string": "cpp",
+			"unordered_map": "cpp",
+			"unordered_set": "cpp",
+			"vector": "cpp",
+			"string_view": "cpp",
+			"initializer_list": "cpp",
+			"ranges": "cpp",
+			"span": "cpp",
+			"regex": "cpp",
+			"valarray": "cpp",
+			"*.tcc": "cpp"
+		}
+	}
+}
