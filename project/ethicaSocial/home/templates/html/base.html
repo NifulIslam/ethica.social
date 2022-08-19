@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <form>
+        <input type="text" placeholder="search..">
+        <select name="searchBy" >
+            <option value="name">Name</option>
+            <option value="nid">Nid</option>
+            <option value="location">Location</option>
+            <option value="post">Post</option>
+          </select>
+        <input type="submit" name="search" value="search">
+    </form>
+    <a href="{% url 'newsFeed'%}">home</a>
+    <a href="{% url 'profile'%}">profile</a>
+    <a href="{% url 'message'%}">message</a>
+    <a href="{% url 'notification'%}">notification</a>
+    <a href="{% url 'settings'%}">settings</a>
+    <a href="{% url 'bloodDonatin'%}">blood donation</a>
+    <a href="{% url 'shop'%}">shop</a>
+    <a href="{% url 'jobs'%}">job</a>
+    <a href="{% url 'news'%}">news</a>
+    <a href="{% url 'followersPost'%}">followers post</a>
+    {% block content %}
+
+
+
+
+	{% endblock content %}
+    
+</html>

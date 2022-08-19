@@ -1,0 +1,24 @@
+{% extends 'html/include.html' %}
+{% block content %}
+
+{% if msg is not none %}
+
+    {{msg}}
+
+
+{% endif %}
+<a href="{% url 'login'%}">
+    log in
+</a>
+<form method="post" action="{% url 'createAccountDb' %}">
+{% csrf_token %}
+    name<input type="text" name="name">
+    nid<input type="text" name="nid">
+    email<input type="email" name="email">
+    password<input type="password" name="password">
+    <input type="submit" name="create">
+</form>
+
+
+
+{% endblock content %}
