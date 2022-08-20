@@ -35,7 +35,7 @@ def logIn(request):
 
 
 def createAccoutn(request):
-	# del request.session['nid']
+	
 	try:
 		request.session['nid']
 		return redirect("/home")

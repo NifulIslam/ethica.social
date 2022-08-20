@@ -71,6 +71,13 @@ def newsFeed(request):
     nid=request.session['nid']
     return render(request, 'html/newsFeed.html')
 
+def settings(request):
+    return render(request, 'html/settings.html')
+
+def logout(request):
+    del request.session['nid']
+    return redirect("/login")
+
 def profilePage(request):
     nid=request.session['nid']
     db=DBConnect.getInstance()
@@ -169,16 +176,15 @@ def followings(request):
     return HttpResponse("this is create followings")
 def othersProfile(request):
     return render(request, 'html/othersProfile.html')
-# def followUser(request):
+
 
 
 
 def message(request):
     return HttpResponse("this is message")
+
 def notification(request):
     return HttpResponse("this is notification")
-def settings(request):
-    return HttpResponse("this is settings")
 def bloodDonatin(request):
     return HttpResponse("this is blood donation")
 

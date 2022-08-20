@@ -1,7 +1,9 @@
 from django.urls import path,include
 from . import views
+from landing import views as views2
 
 urlpatterns = [
+    path('login/', views2.logIn,name="login"),
     path('', views.newsFeed,name="newsFeed"),
     path('profile/', views.profilePage,name="profile"),
     path('message/', views.message,name="message"),
@@ -18,6 +20,9 @@ urlpatterns = [
     path('othersProfile/', views.othersProfile,name="othersProfile"),
     path('createPost/', views.createPost,name="createPost"),
     path('createPostHandle/', views.createPostHandle,name="createPostHandle"),
+    path('logout/', views.logout,name="logout"),
+    path('settings/', views.settings,name="settings"),
+    
     
     
     # path('othersProfile/', views.othersProfile,name="othersProfile"),
