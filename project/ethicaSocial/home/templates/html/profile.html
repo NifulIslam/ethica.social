@@ -9,11 +9,14 @@
 {{name}}
 <ul>
 {% for x in posts %}
-    {{ x.viewers }}<br>
-  {{ x.content }}<br>
-  {{ x.likes }}<br>
-  {{ x.content }}<br>
-  {{ x.content }}<br>
+    audience:{{ x.viewers }}<br>
+  post:{{ x.content }}<br>
+ likes: {{ x.likes }}<br>
+  comment:{% for c in x.comment %}
+  {{ c }}      
+  
+  {% endfor %}
+ <br><br>
   
 {% endfor %}
 </ul>
