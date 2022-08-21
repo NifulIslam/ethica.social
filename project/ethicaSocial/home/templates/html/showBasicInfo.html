@@ -1,0 +1,16 @@
+{% extends 'html/base.html' %}
+{% block content %}
+<br>
+<form method="get" action="{% url 'changeBasicInfo' %}">
+
+
+name:<input type="text" name="name" value={{name}}><br>
+city:<input type="text" name="city" value={{city}}><br>
+country:<input type="text" name="country" value={{country}}><br>
+email:<input type="email" name="email" value={{email}} required><br>
+blood group :<input type="text" name="bloodGroup" value={{bloodGroup}} required><br>
+
+<input type="submit" value="change" name="change" >
+</form>
+
+{% endblock content %}

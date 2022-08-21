@@ -17,13 +17,14 @@ urlpatterns = [
     path('followers/', views.followers,name="followers"),
     path('followings/', views.followings,name="followings"),
     path('othersProfile/', views.othersProfile,name="othersProfile"),
-    path('othersProfile/', views.othersProfile,name="othersProfile"),
     path('createPost/', views.createPost,name="createPost"),
     path('createPostHandle/', views.createPostHandle,name="createPostHandle"),
     path('logout/', views.logout,name="logout"),
-    path('settings/', views.settings,name="settings"),
-    
-    
+    path('addComment/', views.addComment,name="addComment"),
+    path('followAction/', views.followAction,name="followAction"),
+    path('showBasicInfo/', views.showBasicInfo,name="showBasicInfo"),
+    path('changeBasicInfo/', views.changeBasicInfo,name="changeBasicInfo"),
+    path('makeOtherComment/', views.makeOtherComment,name="makeOtherComment"),
     
     # path('othersProfile/', views.othersProfile,name="othersProfile"),
        

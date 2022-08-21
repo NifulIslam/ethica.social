@@ -144,6 +144,7 @@ def createAccountDb(request):
 			"todayPostView":0,
 			"followers":[],
 			"followings":[],
+			"activityLog":[],
 			"dp":"nodp.jpg",
 
 		}
