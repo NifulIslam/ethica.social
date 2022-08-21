@@ -1,4 +1,4 @@
-# install  `django` `pymongo` and `request`
+# install  `django` `pymongo` `pymongo[srv]` and `requests`
 with command 
 >pip install  _name_
 >
