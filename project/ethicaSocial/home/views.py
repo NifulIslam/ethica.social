@@ -426,7 +426,7 @@ def followersPost(request):
     allPosts=[]
     collection=db["user"]
     for i in allPost:
-        if(i["nid"]in usr['followings'] and i["audience"]!="onlyme"):
+        if((i["nid"]in usr['followings'] )and (i["audience"]!="onlyme")):
             comments=getAllComment(i)
             posterNid=i["nid"]
             usr=collection.find_one({"nid":posterNid})

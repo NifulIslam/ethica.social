@@ -10,10 +10,10 @@
 <a href="{% url 'createAccount'%}">
     create account
 </a>
-<form method="post" action="{% url 'validateLogin' %}">
+<form method="post" action="{% url 'validateLogin' %}" style="text-align: center;">
 {% csrf_token %}
-    email<input type="email" name="email">
-    password<input type="password" name="password">
+    email    <input type="email" name="email"><br>
+    password        <input type="password" name="password"><br><br>
     <input type="submit" name="create">
 </form>
 
