@@ -25,6 +25,7 @@ urlpatterns = [
     path('showBasicInfo/', views.showBasicInfo,name="showBasicInfo"),
     path('changeBasicInfo/', views.changeBasicInfo,name="changeBasicInfo"),
     path('makeOtherComment/', views.makeOtherComment,name="makeOtherComment"),
+    path('recharge/', views.recharge,name="recharge"),
     
     # path('othersProfile/', views.othersProfile,name="othersProfile"),
        

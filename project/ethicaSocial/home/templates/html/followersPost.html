@@ -4,6 +4,12 @@
 <ul>
     {% for x in posts %}
       {% if x.type == 'regular' %}
+      <form method="get" action="{% url 'othersProfile' %}">
+        <input type="hidden" value={{x.posterNid}} name="nid">
+        <input type="submit" value={{x.posterName}}, name="link">
+      </form>
+      
+       <br>
        audience:{{ x.viewers }}<br> posted on : {{x.date}}<br>
         post:{{ x.content }}<br>
         likes: {{ x.likes }}<br>

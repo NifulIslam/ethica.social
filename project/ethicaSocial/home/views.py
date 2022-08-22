@@ -199,6 +199,7 @@ def showBasicInfo(request):
     collection=db["user"]
     usr=collection.find_one({"nid":nid})
     usrData={
+    "balance":usr['balance'],
     "name":usr['name'],
     "gender":usr['gender'],
     "age":usr["dob"]['age'],
@@ -209,6 +210,20 @@ def showBasicInfo(request):
     }
 
     return render(request, 'html/showBasicInfo.html',usrData)
+
+def recharge(request):
+    nid=request.session['nid']
+    
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    usr=collection.find_one({"nid":nid})
+    
+    amount=request.GET['rechargeAmount']
+    usr['balance']+=int(amount)
+    
+    collection.delete_one({"nid":nid})
+    collection.insert_one(usr)
+    return redirect(request.META.get('HTTP_REFERER'))
 
 def createPostHandle(request):
     #came from unknown source
@@ -387,8 +402,6 @@ def othersProfile(request):
     return render(request, 'html/othersProfile.html',userInfo)
 
 
-
-
 def message(request):
     return HttpResponse("this is message")
 
@@ -411,10 +424,15 @@ def followersPost(request):
     collection=db["post"]
     allPost=collection.find()
     allPosts=[]
+    collection=db["user"]
     for i in allPost:
-        if(i["nid"]in usr['followers'] and i["audience"]!="onlyme"):
+        if(i["nid"]in usr['followings'] and i["audience"]!="onlyme"):
             comments=getAllComment(i)
+            posterNid=i["nid"]
+            usr=collection.find_one({"nid":posterNid})
             postShow={
+                "posterName":usr['name'],
+                "posterNid":i["nid"],
                 "postNo":i["_id"],
                 "content": i['content'],
                 "likes":len(i["reaction"]["like"]),
