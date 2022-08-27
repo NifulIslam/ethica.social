@@ -7932,8 +7932,8 @@
             .la-youtube-square:before { content: "\f38d"; }
                     </style>
     </head>
-    <form>
-        <input type="text" placeholder="search..">
+    <form method = 'get', action="{% url 'search' %}">
+        <input type="text" placeholder="search.." name="searchValue">
         <select name="searchBy" >
             <option value="name">Name</option>
             <option value="nid">Nid</option>

@@ -1,15 +1,24 @@
 {% extends 'html/base.html' %}
 {% block content %}
+{% if msg is not none %}
+
+    {{msg}}
+
+{% endif %}
 
 
 <form method="get" action="{% url 'followAction' %}">
+  
+  <input type = "hidden" name="next" value={{request.path}}>
     <input type = "hidden" name="isFollowing" value={{isFollowing}}>
     <input type = "hidden" name="nid" value={{nid}}>
     <input type = "hidden" name="viewerNid" value={{seeingNid}}>
     <input type="submit" name="follow" value={{followBtn}}>
 </form>
 
-<form method="get">
+<form method="get" action="{% url 'tip' %}">
+    <input type = "hidden" name="reciever" value={{nid}}>
+    <input type = "hidden" name="viewer" value={{seeingNid}}>
     <input type="number" min="1" placeholder="tip amount" name="tipamount">
     <input type="submit" name="tip" value="tip">
 </form>
@@ -20,6 +29,7 @@ gender : {{gender}}<br>
 age:{{age}}<br>
 city : {{city}}<br>
 country : {{country}} <br>
+{{bio}}<br>
 <!-- seeing -> not owner of the page -->
 
 <ul>
@@ -37,16 +47,14 @@ country : {{country}} <br>
                 <input type = "submit" value="comment" name="commentBtn">
                 
         </form>
+        <a href="{% url 'seeTranslated' %}?postId={{x.postNo}}">translate</a><br>
         comment:<br>
         {% for c in x.comment %}
-          {% if c is iterable  %}
-            
-          {% else %} 
-          {% for v in c%}
-            {{v}}
-          {% endfor %}
+          <a href="{% url 'othersProfile' %}?nid={{c.commenterNid}}">{{c.commenterName}}</a>
+          
+          {{c.comment}}
           <br> 
-          {% endif %}
+          
            
       {% endfor %}
       <br><br>

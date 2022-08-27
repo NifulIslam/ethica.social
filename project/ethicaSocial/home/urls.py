@@ -16,6 +16,7 @@ urlpatterns = [
     path('followersPost/', views.followersPost,name="followersPost"),
     path('followers/', views.followers,name="followers"),
     path('followings/', views.followings,name="followings"),
+    path('othersProfile/<nid>/', views.othersProfile,name="othersProfile"),
     path('othersProfile/', views.othersProfile,name="othersProfile"),
     path('createPost/', views.createPost,name="createPost"),
     path('createPostHandle/', views.createPostHandle,name="createPostHandle"),
@@ -26,7 +27,12 @@ urlpatterns = [
     path('changeBasicInfo/', views.changeBasicInfo,name="changeBasicInfo"),
     path('makeOtherComment/', views.makeOtherComment,name="makeOtherComment"),
     path('recharge/', views.recharge,name="recharge"),
+    path('tip/', views.tip,name="tip"),
+    path('search/', views.search,name="search"),
+    path('activityLog/', views.activityLog,name="activityLog"),
+    path('seeTranslated/<postId>/', views.seeTranslated,name="seeTranslated"),
+    path('seeTranslated/', views.seeTranslated,name="seeTranslated"),
     
-    # path('othersProfile/', views.othersProfile,name="othersProfile"),
+    
        
 ]

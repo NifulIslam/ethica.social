@@ -1,15 +1,20 @@
+from glob import glob
 import profile
 import datetime
 from tokenize import Comment
+from unittest import result
 from django.shortcuts import render
 from email import message
-from django.shortcuts import render,redirect,HttpResponseRedirect
+from django.shortcuts import render,redirect,HttpResponseRedirect,reverse
 from django.http import HttpResponse
 from pymongo import MongoClient
 import requests
 import gridfs
 from sympy import content
 from bson.objectid import ObjectId
+from googletrans import Translator
+
+
 class DBConnect:
    __instance = None
    @staticmethod 
@@ -42,6 +47,29 @@ class igmDBConnect:
         db = cluster["ethicaPhotos"]
 
         igmDBConnect.__instance = db
+
+def addActivity(nid,activity):
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    if(len(activity)==0):
+        return
+
+    usr=collection.find_one({"nid":nid})
+    usr['activityLog'].append(activity)
+
+    collection.delete_one({"nid":nid})
+    collection.insert_one(usr)
+def translate_(text,dest_='bn'):
+    translator = Translator()
+    out= translator.translate(text,dest=dest_)
+    return out.text
+
+
+def getUsr(nid):
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    usr=collection.find_one({"nid":nid})
+    return usr
 
 def uploadPhoto(photo):
     cluster = MongoClient("mongodb+srv://root:1234@cluster1.8jmyghr.mongodb.net/?retryWrites=true&w=majority")
@@ -77,8 +105,24 @@ def getAllComment(post):
         commenterNid=i[0]
         commenter=collection.find_one({"nid":commenterNid})
         commenterName=commenter['name']
-        allComment.append([commenterName,i[1]])
+        allComment.append({
+            "commenterName":commenterName,
+            "commenterNid":commenterNid,
+            "comment":i[1]})
     return allComment
+
+def activityLog(request):
+    nid=request.session['nid']
+
+    db=DBConnect.getInstance()
+    collection=db["user"]
+
+    usr=collection.find_one({"nid":nid})
+    activity={
+        "usrActivity":usr['activityLog']
+        }
+    
+    return render(request, 'html/activityLog.html',activity)
 
 def newsFeed(request):
     nid=request.session['nid']
@@ -94,6 +138,7 @@ def logout(request):
 def addComment(request):
     content=request.POST["comment"]
     postid=request.POST["postid"]
+    commenter=request.session['nid']
     if(len(content)==0):
         return redirect("profile")
     
@@ -102,11 +147,34 @@ def addComment(request):
     collection=db["post"]
     postData=collection.find_one({"_id":ObjectId(postid)})
     allComments=postData["comment"]
-    allComments.append([request.session['nid'], content])
+    allComments.append([commenter, content])
     postData["comment"]=allComments
     collection.delete_one({"_id":ObjectId(postid)})
     collection.insert_one(postData)
+    addActivity(commenter,"made a comment \""+content+"\" on your post at "+str(datetime.datetime.now()))
     return redirect(request.META.get('HTTP_REFERER'))
+    
+
+def seeTranslated(request):
+    nid=request.session['nid']
+    postId=request.GET['postId']
+    db=DBConnect.getInstance()
+    collection=db["post"]
+    i=collection.find_one({"_id":ObjectId(postId)})
+    comments=getAllComment(i)
+    
+    postShow={
+            "translatedContent":translate_(i["content"]),
+            "postNo":i["_id"],
+            "content": i['content'],
+            "likes":len(i["reaction"]["like"]),
+            "comment":comments,
+            "viewers":i["audience"],
+            "type":i["type"],
+            "date":i['date'],
+        }
+    
+    return render(request, 'html/seeTranslatedPost.html',postShow)
     
 
 
@@ -119,6 +187,7 @@ def profilePage(request):
     userInfo={
         "dp":dp,
         "name":usr["name"],
+        "bio":usr['bio']
     }
     
     collection=db["post"]
@@ -163,7 +232,9 @@ def makeOtherComment(request):
     postData["comment"]=allComments
     collection.delete_one({"_id":ObjectId(postid)})
     collection.insert_one(postData)
-    
+    own=getUsr(postData['nid'])
+    print(own)
+    addActivity(commenter, "made a comment \""+comment+"\" on "+own['name']+"'s post at "+str(datetime.datetime.now()))
 
     return redirect(request.META.get('HTTP_REFERER'))
 
@@ -184,8 +255,12 @@ def changeBasicInfo(request):
     if(len(newCountry)>4):
         usr['location']['country']=newCountry
     
+    newBio=request.GET['bio']
+
+    
     usr['email']=request.GET['email']
     usr['bloodGroup'] = request.GET['bloodGroup']
+    usr['bio']=newBio
     collection.delete_one({"nid":nid})
     collection.insert_one(usr)
     
@@ -207,6 +282,7 @@ def showBasicInfo(request):
     "country":usr['location']['country'],
     "email":usr['email'],
     "bloodGroup":usr['bloodGroup'],
+    "bio":usr["bio"],
     }
 
     return render(request, 'html/showBasicInfo.html',usrData)
@@ -223,6 +299,7 @@ def recharge(request):
     
     collection.delete_one({"nid":nid})
     collection.insert_one(usr)
+    addActivity(nid,"recharged tk "+ str(amount) +" at "+ str(datetime.datetime.now()))
     return redirect(request.META.get('HTTP_REFERER'))
 
 def createPostHandle(request):
@@ -302,9 +379,12 @@ def followAction(request):
     if(isFollowing):
         usr['followings'].remove(ownernid)
         usr2['followers'].remove(viewernid)
+        addActivity(viewernid,"unfollowed "+usr2['name']+" at "+ str(datetime.datetime.now()))
+        
     else:
         usr["followings"].append(ownernid)
         usr2['followers'].append(viewernid)
+        addActivity(viewernid,"started following "+usr2['name']+" at "+ str(datetime.datetime.now()))
     
     collection.delete_one({"nid":viewernid})
     collection.insert_one(usr)
@@ -345,9 +425,32 @@ def followers(request):
     return render(request, 'html/followers.html',followersInfo)
 
 def followings(request):
-    return HttpResponse("this is create followings")
-def othersProfile(request):
-    nid=request.GET["nid"]
+    nid=request.session['nid']
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    usr=collection.find_one({"nid":nid})
+
+    followerShow=[]
+    for i in usr['followings']:
+        follower=collection.find_one({"nid":i})
+        followerShow.append(
+            {
+            "nid":i,
+            "name":follower['name'],
+            "city":follower['location']['city'],
+            "country":follower['location']['country']
+            }
+            )
+
+    followersInfo={
+        "allFollowers":followerShow,
+    }
+    return render(request, 'html/followingList.html',followersInfo)
+
+def othersProfile(request,nid=None):
+    if(nid is None):
+        nid=request.GET["nid"]
+    
     mynid=request.session['nid']
     if(mynid==nid):
         return redirect("profile")
@@ -385,6 +488,7 @@ def othersProfile(request):
     
     userInfo={
         "name":usr["name"],
+        "bio":usr['bio'],
         "nid":nid,
         "seeingNid":mynid,
         "gender": usr["gender"],
@@ -396,10 +500,48 @@ def othersProfile(request):
         "followBtn":followBtn,
         "isFollowing":isFollowing,
     }
-    
+    global noAmountToDonate
+    if(noAmountToDonate):
+        userInfo['msg']='not enough amount to donate'
+        noAmountToDonate=False
     
 
     return render(request, 'html/othersProfile.html',userInfo)
+
+def tip(request):
+    donater=request.GET['viewer']
+    reciever=request.GET['reciever']
+    amountTk=int(request.GET['tipamount'])
+    global noAmountToDonate
+
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    donaterAc=collection.find_one({"nid":donater})
+    if(donaterAc['balance']<=amountTk):
+        noAmountToDonate=True
+        return redirect(othersProfile,nid=reciever)
+    
+    donaterAc['balance']-=amountTk+1
+    collection.delete_one({"nid":donater})
+    collection.insert_one(donaterAc)
+    
+    recieverAc=collection.find_one({"nid":reciever})
+    recieverAc['balance']+=amountTk
+    collection.delete_one({"nid":reciever})
+    collection.insert_one(recieverAc)
+    
+    addActivity(donater,"donated tk "+str(amountTk)+ " to "+ recieverAc['name'] + " at "+str(datetime.datetime.now()))
+    
+    return redirect(request.META.get('HTTP_REFERER'))
+
+
+    
+
+
+
+    
+    
+
 
 
 def message(request):
@@ -426,7 +568,7 @@ def followersPost(request):
     allPosts=[]
     collection=db["user"]
     for i in allPost:
-        if((i["nid"]in usr['followings'] )and (i["audience"]!="onlyme")):
+        if((i["nid"]in usr['followings'] or i["nid"]in usr['followers']  ) and (i["audience"]!="onlyme")):
             comments=getAllComment(i)
             posterNid=i["nid"]
             usr=collection.find_one({"nid":posterNid})
@@ -454,6 +596,98 @@ def followersPost(request):
     }
     return render(request,"html/followersPost.html",postShowAll)
 
+def search(request):
+    searchBy=request.GET['searchBy']
+    searchValue=request.GET['searchValue']
+    nid=request.session["nid"]
+    
+    
+    if(len(searchValue)==0):
+        return redirect(request.META.get('HTTP_REFERER'))
+    
+    addActivity(nid,"searched for "+ searchValue+" at "+str(datetime.datetime.now()) )
+
+    results=[]
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    if(searchBy=='nid'):
+        usr=collection.find_one({"nid":searchValue})
+        results.append({
+            "nid":usr['nid'],
+            "name":usr["name"],
+            "city":usr['location']['city'],
+            "country":usr['location']['country']
+            
+        })
+    elif(searchBy=='name'):
+        usrs=collection.find({"name":{"$regex": searchValue,"$options":'i'}})
+        for usr in usrs:
+            results.append({
+            "nid":usr['nid'],
+            "name":usr["name"],
+            "city":usr['location']['city'],
+            "country":usr['location']['country']
+            
+        })
+    
+    elif(searchBy=='location'):
+        usrs=collection.find({"location.city":{"$regex": searchValue,"$options":'i'}})
+        for usr in usrs:
+            results.append({
+            "nid":usr['nid'],
+            "name":usr["name"],
+            "city":usr['location']['city'],
+            "country":usr['location']['country']
+            
+        })
+        usrs=collection.find({"location.country":{"$regex": searchValue,"$options":'i'}})
+        for usr in usrs:
+            rslt=({
+            "nid":usr['nid'],
+            "name":usr["name"],
+            "city":usr['location']['city'],
+            "country":usr['location']['country']
+            
+        })
+        if(rslt not in results):
+            results.append(rslt)
+    
+
+    searchResult={
+        "people":results
+    }
+        
+    if(searchBy!="post"):
+        return render(request,'html/searchResult.html',searchResult)
+    
+    db=DBConnect.getInstance()
+    collection=db["post"]
+    
+    posts=collection.find({"content":{"$regex": searchValue,"$options":'i'}})
+    collection=db["user"]
+    for i in posts:
+        if(i["audience"]!="onlyme"):
+            comments=getAllComment(i)
+            posterNid=i["nid"]
+            usr=collection.find_one({"nid":posterNid})
+            results.append({
+                "posterName":usr['name'],
+                "posterNid":i["nid"],
+                "postNo":i["_id"],
+                "content": i['content'],
+                "likes":len(i["reaction"]["like"]),
+                "comment":comments,
+                "viewers":i["audience"],
+                "type":i["type"],
+                "date":i['date'],
+                
+                
+                })
+    
 
 
-
+    searchResult={
+        "posts":results
+    }
+    return render(request,'html/searchPost.html',searchResult)
+noAmountToDonate=False
