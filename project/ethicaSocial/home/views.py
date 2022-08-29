@@ -1,11 +1,14 @@
+import json
 from glob import glob
 import profile
 import datetime
+from tkinter.messagebox import NO
 from tokenize import Comment
 from unittest import result
 from django.shortcuts import render
 from email import message
 from django.shortcuts import render,redirect,HttpResponseRedirect,reverse
+from django.http import JsonResponse
 from django.http import HttpResponse
 from pymongo import MongoClient
 import requests
@@ -59,6 +62,32 @@ def addActivity(nid,activity):
 
     collection.delete_one({"nid":nid})
     collection.insert_one(usr)
+
+
+def addNotification(nid,notification):
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    if(len(notification)==0):
+        return
+
+    usr=collection.find_one({"nid":nid})
+    usr['notification'].append(notification)
+
+    collection.delete_one({"nid":nid})
+    collection.insert_one(usr)
+
+
+def rechargeFunc(nid,tk):
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    usr=collection.find_one({"nid":nid})
+    usr['balance']+=tk
+    collection.delete_one({"nid":nid})
+    collection.insert_one(usr)
+    
+    
+
+
 def translate_(text,dest_='bn'):
     translator = Translator()
     out= translator.translate(text,dest=dest_)
@@ -110,6 +139,20 @@ def getAllComment(post):
             "commenterNid":commenterNid,
             "comment":i[1]})
     return allComment
+
+def notification(request):
+    nid=request.session['nid']
+
+    db=DBConnect.getInstance()
+    collection=db["user"]
+
+    usr=collection.find_one({"nid":nid})
+    activity={
+        "usrActivity":usr['notification']
+        }
+    return render(request, 'html/activityLog.html',activity)
+    
+
 
 def activityLog(request):
     nid=request.session['nid']
@@ -237,6 +280,98 @@ def makeOtherComment(request):
     addActivity(commenter, "made a comment \""+comment+"\" on "+own['name']+"'s post at "+str(datetime.datetime.now()))
 
     return redirect(request.META.get('HTTP_REFERER'))
+
+def buyData(request):
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    instances=collection.count_documents({})
+    metaData={
+        "maxData":instances
+    }
+    global noAmountToBuyData
+    if(noAmountToBuyData):
+        noAmountToBuyData=False
+        metaData["msg"]= "not enough amount to buy data. please recharge"
+    return render(request,"html/buyData.html",metaData)
+
+
+def buyDataHandle(request):
+    buyerNid=request.session['nid']
+    global noAmountToBuyData
+
+    perDataPrice=10
+    usrData=[]
+    
+    maxUsrLimit=int(request.GET['maxUsr'])
+    ageLimit=int(request.GET['age'])
+    gender=request.GET['gender']
+    location=request.GET["location"]
+
+
+
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    
+    buyer=collection.find_one({"nid":buyerNid})
+
+    if(buyer['balance']<perDataPrice*maxUsrLimit):
+        noAmountToBuyData=True
+        return redirect(buyData)
+    
+
+    usrs=collection.find({})
+
+
+
+    
+    collection=db["post"]
+    for usr in usrs:
+        if(len(usrData)==maxUsrLimit):
+            break
+
+        if(usr["nid"]==buyerNid):
+            pass
+        if(not usr['sellData']):
+            pass
+        if(usr['dob']["age"]>ageLimit):
+            pass
+        if(gender!="any" and gender!=usr['gender']):
+            pass
+
+        if(location!="any" and len(location)!=0 and (usr['location']['city'] != location or usr['location']['country'] != location  ) ):
+            pass
+
+        posts=collection.find({"nid":usr['nid']})
+        allPosts=[]
+        for i in posts:
+            comments=getAllComment(i)
+            i["comment"]=comments    
+            del i['_id']  
+            del i['date']  
+            allPosts.append(i)
+
+
+        addNotification(usr["nid"],"your data has been sold. you recieved tk "+ str(perDataPrice//2))
+        rechargeFunc(usr["nid"],perDataPrice//2)
+
+        usr['posts']=allPosts
+        del usr["nid"]
+        del usr['email']
+        del usr['password']
+        del usr['_id']
+        del usr['dob']['date']
+        del usr['phone_number']
+
+        usrData.append(usr)
+
+
+    rechargeFunc(buyer["nid"],-1*perDataPrice*len(usrData))
+    addActivity(buyer["nid"],"you bought data of amount tk"+ str(perDataPrice*len(usrData)))
+    return HttpResponse(json.dumps(usrData), content_type="application/force-download")
+
+
+
+
 
 def changeBasicInfo(request):
     nid=request.session['nid']
@@ -547,8 +682,6 @@ def tip(request):
 def message(request):
     return HttpResponse("this is message")
 
-def notification(request):
-    return HttpResponse("this is notification")
 def bloodDonatin(request):
     return HttpResponse("this is blood donation")
 
@@ -690,4 +823,6 @@ def search(request):
         "posts":results
     }
     return render(request,'html/searchPost.html',searchResult)
+
 noAmountToDonate=False
+noAmountToBuyData=False

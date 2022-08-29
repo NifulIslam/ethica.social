@@ -7,7 +7,6 @@ urlpatterns = [
     path('', views.newsFeed,name="newsFeed"),
     path('profile/', views.profilePage,name="profile"),
     path('message/', views.message,name="message"),
-    path('notification/', views.notification,name="notification"),
     path('settings/', views.settings,name="settings"),
     path('bloodDonatin/', views.bloodDonatin,name="bloodDonatin"),
     path('shop/', views.shop,name="shop"),
@@ -32,7 +31,11 @@ urlpatterns = [
     path('activityLog/', views.activityLog,name="activityLog"),
     path('seeTranslated/<postId>/', views.seeTranslated,name="seeTranslated"),
     path('seeTranslated/', views.seeTranslated,name="seeTranslated"),
+    path('buyData/', views.buyData,name="buyData"),
+    path('buyDataHandle/', views.buyDataHandle,name="buyDataHandle"),
+    path('notification/', views.notification,name="notification"),
     
     
+
        
 ]
