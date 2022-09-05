@@ -34,8 +34,7 @@ urlpatterns = [
     path('buyData/', views.buyData,name="buyData"),
     path('buyDataHandle/', views.buyDataHandle,name="buyDataHandle"),
     path('notification/', views.notification,name="notification"),
-    
-    
-
+    path('toggleCellData/', views.toggleCellData,name="toggleCellData"),
+    path('buyReaction/', views.buyReaction,name="buyReaction"),
        
 ]

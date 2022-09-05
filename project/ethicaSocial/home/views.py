@@ -86,6 +86,11 @@ def rechargeFunc(nid,tk):
     collection.insert_one(usr)
     
     
+def updateUsr(usr):
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    collection.delete_one({"nid":usr["nid"]})
+    collection.insert_one(usr)
 
 
 def translate_(text,dest_='bn'):
@@ -171,8 +176,66 @@ def newsFeed(request):
     nid=request.session['nid']
     return render(request, 'html/newsFeed.html')
 
+
+def toggleCellData(request):
+    nid=request.session['nid']
+    
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    usr=collection.find_one({"nid":nid})
+    usr['sellData'] = not usr['sellData']
+    updateUsr(usr)
+
+    
+    return redirect(settings)
+
+def buyReaction(request):
+    nid=request.session['nid']
+    
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    usr=collection.find_one({"nid":nid})
+
+    reactionPrice=500
+    global cannotBuyReaction
+    if(usr['balance']<reactionPrice):
+        cannotBuyReaction=True
+
+
+    reaction=request.GET['buyReaction']
+    usr['reactions'].append(reaction)
+    updateUsr(usr)
+    return redirect(settings)
+
+
+
 def settings(request):
-    return render(request, 'html/settings.html')
+    nid=request.session['nid']
+    reactions=["haha", "love", "angry","dislike","sad","surprised", "fear","surprised"]
+    
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    usr=collection.find_one({"nid":nid})
+    buyAvailable=[]
+
+    for i in reactions:
+        if(i not in usr["reactions"]):
+            buyAvailable.append(i)
+
+
+    dataAction="stop"
+    
+    if(not usr['sellData']):
+        dataAction="allow"
+    send={"toggle":dataAction, "reactionBuy":buyAvailable}
+    msg=None
+    global cannotBuyReaction
+    if(cannotBuyReaction):
+        cannotBuyReaction=False
+        msg="not enough money to buy reaction"
+    send['msg']=msg
+    
+    return render(request, 'html/settings.html',send)
 
 def logout(request):
     del request.session['nid']
@@ -257,6 +320,12 @@ def profilePage(request):
     return render(request, 'html/profile.html',userInfo)
 
 def createPost(request):
+    nid=request.session['nid']
+    db=DBConnect.getInstance()
+    collection=db["user"]
+    usr=collection.find_one({"nid":nid})
+    
+
     return render(request, 'html/createPost.html')
 
 def makeOtherComment(request):
@@ -826,3 +895,4 @@ def search(request):
 
 noAmountToDonate=False
 noAmountToBuyData=False
+cannotBuyReaction=False

@@ -33,7 +33,6 @@ def sendMail(request,to_):
 	smtpserver.starttls()
 	smtpserver.ehlo()
 	smtpserver.login(email_addr, email_passwd)
-	to_ = 'sjadid2@gmail.com'
 	SUBJECT="Password Recovery"
 	otp= str(random.randint(1000, 9999))
 	request.session['otp']=otp
@@ -214,6 +213,8 @@ def createAccountDb(request):
 			"followers":[],
 			"followings":[],
 			"activityLog":[],
+			"notification":[],
+			"reactions":[],
 			"dp":"nodp.jpg",
 
 		}
