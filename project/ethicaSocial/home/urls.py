@@ -1,7 +1,6 @@
 from django.urls import path,include
 from . import views
 from landing import views as views2
-
 urlpatterns = [
     path('login/', views2.logIn,name="login"),
     path('', views.newsFeed,name="newsFeed"),

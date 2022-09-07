@@ -21,6 +21,8 @@
                 <input type = "submit" value="comment" name="commentBtn">
                 
         </form>
+        <a href="{% url 'seeTranslated' %}?postId={{x.postNo}}">translate</a>
+        <br>
         comment:<br>
         {% for c in x.comment %}
           <a href="{% url 'othersProfile' %}?nid={{c.commenterNid}}">{{c.commenterName}}</a>

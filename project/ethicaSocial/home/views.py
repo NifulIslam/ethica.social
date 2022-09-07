@@ -16,6 +16,7 @@ import gridfs
 from sympy import content
 from bson.objectid import ObjectId
 from googletrans import Translator
+from django.core.files.storage import FileSystemStorage
 
 
 class DBConnect:
@@ -71,7 +72,10 @@ def addNotification(nid,notification):
         return
 
     usr=collection.find_one({"nid":nid})
-    usr['notification'].append(notification)
+    try:
+        usr['notification'].append(notification)
+    except:
+        usr['notification']= notification
 
     collection.delete_one({"nid":nid})
     collection.insert_one(usr)
@@ -258,6 +262,7 @@ def addComment(request):
     collection.delete_one({"_id":ObjectId(postid)})
     collection.insert_one(postData)
     addActivity(commenter,"made a comment \""+content+"\" on your post at "+str(datetime.datetime.now()))
+    
     return redirect(request.META.get('HTTP_REFERER'))
     
 
@@ -345,9 +350,12 @@ def makeOtherComment(request):
     collection.delete_one({"_id":ObjectId(postid)})
     collection.insert_one(postData)
     own=getUsr(postData['nid'])
-    print(own)
+    commenterData=getUsr(commenter)
+    notificationTxt= postData['content']
+    if(len(notificationTxt)>10):
+        notificationTxt= postData['content'][:10]
     addActivity(commenter, "made a comment \""+comment+"\" on "+own['name']+"'s post at "+str(datetime.datetime.now()))
-
+    addNotification(own['nid'],commenterData['name']+" made a comment on your post " + notificationTxt+"...")
     return redirect(request.META.get('HTTP_REFERER'))
 
 def buyData(request):
@@ -511,10 +519,15 @@ def createPostHandle(request):
     if(request.method!='POST'):
         return redirect("createPost")
 
-
-    photo=None
+    posterNid =request.session['nid']
+    usr = getUsr(posterNid)
+    photo_name=None
     try:
-        photo=request.POST['img']
+        uploaded_file = request.FILES['photo']
+        fs = FileSystemStorage()
+        photo_name=usr['nid']+"_"+datetime.datetime.now()
+        print(fs,photo_name,uploaded_file)
+        fs.save(photo_name, uploaded_file)
     except:
         pass
     
@@ -547,7 +560,7 @@ def createPostHandle(request):
     audience=request.POST["audience"]
     
     post={
-        "nid":request.session['nid'],
+        "nid": posterNid,
         "content":postContent,
         "photo":None,
         "reaction":{
