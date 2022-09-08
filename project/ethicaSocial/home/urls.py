@@ -35,5 +35,12 @@ urlpatterns = [
     path('notification/', views.notification,name="notification"),
     path('toggleCellData/', views.toggleCellData,name="toggleCellData"),
     path('buyReaction/', views.buyReaction,name="buyReaction"),
-       
+    path('deletePost/<postid>/', views.deletePost,name="deletePost"),
+    path('deletePost/', views.deletePost,name="deletePost"),
+    path('viewReactions/<postid>/', views.viewReactions,name="viewReactions"),
+    path('viewReactions/', views.viewReactions,name="viewReactions"),
+    path('updateDp/', views.updateDp,name="updateDp"),
+    path('updateUsrMaxPostView/', views.updateUsrMaxPostView,name="updateUsrMaxPostView"),  
+    path('meReact/<reactorNid>/', views.meReact,name="meReact"),  
+    path('meReact/', views.meReact,name="meReact"),  
 ]

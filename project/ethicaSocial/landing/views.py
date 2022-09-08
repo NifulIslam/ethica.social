@@ -215,6 +215,7 @@ def createAccountDb(request):
 			"activityLog":[],
 			"notification":[],
 			"reactions":[],
+			"interest":[],
 			"dp":"nodp.jpg",
 
 		}

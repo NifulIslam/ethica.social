@@ -13,7 +13,14 @@
 <form method="get" action="{%  url 'toggleCellData' %} ">
     <input type="submit"  name="sellDataToggle" value="{{toggle}}  celling data">
 </form>
+<br><br>
+<form method ='get' action="{% url 'updateUsrMaxPostView' %}">
+    <input type="number" min="1" placeholder="maximum post view limit" name="maxPostLimit">
+    <input type = "submit" value="set" name="set">
+</form>
 
+
+<br>
 buy reactions
 
 {% for i in reactionBuy %}

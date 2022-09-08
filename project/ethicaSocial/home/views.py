@@ -5,6 +5,7 @@ import datetime
 from tkinter.messagebox import NO
 from tokenize import Comment
 from unittest import result
+from cv2 import FileStorage
 from django.shortcuts import render
 from email import message
 from django.shortcuts import render,redirect,HttpResponseRedirect,reverse
@@ -61,8 +62,7 @@ def addActivity(nid,activity):
     usr=collection.find_one({"nid":nid})
     usr['activityLog'].append(activity)
 
-    collection.delete_one({"nid":nid})
-    collection.insert_one(usr)
+    updateUsr(usr)
 
 
 def addNotification(nid,notification):
@@ -77,8 +77,7 @@ def addNotification(nid,notification):
     except:
         usr['notification']= notification
 
-    collection.delete_one({"nid":nid})
-    collection.insert_one(usr)
+    updateUsr(usr)
 
 
 def rechargeFunc(nid,tk):
@@ -213,6 +212,15 @@ def buyReaction(request):
 
 
 
+def updateUsrMaxPostView(request):
+    nid=request.session['nid']
+    usr=getUsr(nid)
+    maxPView=int(request.GET['maxPostLimit'])
+    usr['maxPostView']=maxPView
+    updateUsr(usr)
+    return redirect(settings)
+
+
 def settings(request):
     nid=request.session['nid']
     reactions=["haha", "love", "angry","dislike","sad","surprised", "fear","surprised"]
@@ -273,48 +281,120 @@ def seeTranslated(request):
     collection=db["post"]
     i=collection.find_one({"_id":ObjectId(postId)})
     comments=getAllComment(i)
-    
+    fs=FileSystemStorage()
     postShow={
             "translatedContent":translate_(i["content"]),
             "postNo":i["_id"],
             "content": i['content'],
-            "likes":len(i["reaction"]["like"]),
+            "likes":len(i['reactors']),
             "comment":comments,
             "viewers":i["audience"],
             "type":i["type"],
             "date":i['date'],
+            "photo":None,
         }
+    if(i['photo']):
+        postShow['photo']=fs.url(i["photo"])
+
     
     return render(request, 'html/seeTranslatedPost.html',postShow)
     
 
+def viewReactions(request):
+    postid=request.GET['postid']
+    db=DBConnect.getInstance()
+    collection=db["post"]
+    post=collection.find_one({"_id":ObjectId(postid)})
+    reacCount=[]
+    fs=FileSystemStorage()
+    for i in post['reactionCount'].keys():
+        reacCount.append({
+            "reactName":i,
+            "reactorInfo":[] })
+        for us in post['reactionCount'][i]:
+            usr=getUsr(us)
+            reacCount[-1]["reactorInfo"].append({
+                "reactName":usr['name'],
+                "reactNid":usr['nid'],
+                "dp":fs.url(usr["dp"])
+            })
+            
+    return render(request, 'html/viewPostReact.html',{"react":reacCount})
+    
+
+def meReact(request):
+    postid=request.GET['postid']
+    reactName=request.GET['reactName']
+    db=DBConnect.getInstance()
+    collection=db["post"]
+    post=collection.find_one({"_id":ObjectId(postid)})
+    
+    nid=None
+    myNid=request.session['nid']
+    try:
+        nid=request.GET['reactorNid']
+    except:
+        nid=myNid
+    if(nid!=myNid and nid not in post["reactors"]):
+        usr=getUsr(post['nid'])
+        addActivity(nid,"reacted on "+usr['name']+" post at "+ str(datetime.datetime.now()))
+        usr=getUsr(nid)
+        addNotification(post['nid'],usr['name']+ " "+reactName+"d on your post")
+
+    
+    if(nid not in post["reactors"]):
+        post['reactors'].append(nid)
+    
+    
+    for react in post['reactionCount'].keys():
+        if(nid in post['reactionCount'][react]):
+            post['reactionCount'][react].remove(nid)
+        
+        if(react==reactName ):
+            post['reactionCount'][react].append(nid)
+
+    collection.delete_one({"_id":ObjectId(postid)})
+    collection.insert_one(post)
+    
+
+    return redirect(request.META.get('HTTP_REFERER'))
+    
 
 def profilePage(request):
     nid=request.session['nid']
     db=DBConnect.getInstance()
     collection=db["user"]
     usr=collection.find_one({"nid":nid})
-    dp=getImg(nid)
+    fs=FileSystemStorage()
+    # dp=getImg(nid)
     userInfo={
-        "dp":dp,
+        "dp":fs.url(usr['dp']),
         "name":usr["name"],
-        "bio":usr['bio']
+        "bio":usr['bio'],
     }
+    
     
     collection=db["post"]
     posts=collection.find({"nid":nid})
     allPosts=[]
     for i in posts:
         comments=getAllComment(i)
+        reactionCount=len(i['reactors'])
         postShow={
             "postNo":i["_id"],
             "content": i['content'],
-            "likes":len(i["reaction"]["like"]),
+            "reactions":reactionCount,
             "comment":comments,
             "viewers":i["audience"],
             "type":i["type"],
             "date":i['date'],
+            "reactTypes":list(i["reactionCount"].keys()),
+            "photo":None
         }
+        
+        if(i['photo']):
+            postShow['photo']=fs.url(i['photo'])
+            
         
         allPosts.append(postShow)
         
@@ -324,14 +404,28 @@ def profilePage(request):
 
     return render(request, 'html/profile.html',userInfo)
 
+def updateDp(request):
+    nid=request.session['nid']
+    usr=getUsr(nid)
+    try:
+        uploaded_file = request.FILES["dp"]
+        fs = FileSystemStorage()   
+        photo_name=fs.save(uploaded_file.name, uploaded_file)
+        usr['dp']=photo_name
+        updateUsr(usr)
+    except:
+        pass
+    return redirect(profilePage)
+
 def createPost(request):
     nid=request.session['nid']
-    db=DBConnect.getInstance()
-    collection=db["user"]
-    usr=collection.find_one({"nid":nid})
     
+    usr=getUsr(nid)
+    usrData={
+        "reactions":usr['reactions']
+    }
 
-    return render(request, 'html/createPost.html')
+    return render(request, 'html/createPost.html',usrData)
 
 def makeOtherComment(request):
     ownerOfPost=request.GET['nid']
@@ -356,6 +450,8 @@ def makeOtherComment(request):
         notificationTxt= postData['content'][:10]
     addActivity(commenter, "made a comment \""+comment+"\" on "+own['name']+"'s post at "+str(datetime.datetime.now()))
     addNotification(own['nid'],commenterData['name']+" made a comment on your post " + notificationTxt+"...")
+    commenterData["interest"].extend(postData['tags'])
+    updateUsr(commenterData)
     return redirect(request.META.get('HTTP_REFERER'))
 
 def buyData(request):
@@ -478,7 +574,14 @@ def changeBasicInfo(request):
     
     return redirect("profile")
     
+def deletePost(request):
+    postid=request.GET['postid']
 
+    db=DBConnect.getInstance()
+    collection=db["post"]
+    collection.delete_one({"_id":ObjectId(postid)})
+    
+    return redirect("profile")
 
 def showBasicInfo(request):
     nid=request.session['nid']
@@ -508,9 +611,7 @@ def recharge(request):
     
     amount=request.GET['rechargeAmount']
     usr['balance']+=int(amount)
-    
-    collection.delete_one({"nid":nid})
-    collection.insert_one(usr)
+    updateUsr(usr)
     addActivity(nid,"recharged tk "+ str(amount) +" at "+ str(datetime.datetime.now()))
     return redirect(request.META.get('HTTP_REFERER'))
 
@@ -522,12 +623,16 @@ def createPostHandle(request):
     posterNid =request.session['nid']
     usr = getUsr(posterNid)
     photo_name=None
+    reactions= request.POST.getlist('reaction')
+    reactions.append("like")
+    reactionCount={}
+    for i in reactions:
+        reactionCount[i]=[]
+    
     try:
-        uploaded_file = request.FILES['photo']
-        fs = FileSystemStorage()
-        photo_name=usr['nid']+"_"+datetime.datetime.now()
-        print(fs,photo_name,uploaded_file)
-        fs.save(photo_name, uploaded_file)
+        uploaded_file = request.FILES["photo"]
+        fs = FileSystemStorage()   
+        photo_name=fs.save(uploaded_file.name, uploaded_file)
     except:
         pass
     
@@ -550,7 +655,7 @@ def createPostHandle(request):
     
     #empty post
     if(len(postContent)==0):
-        return render(request, 'html/createPost.html',{"msg":"post cannot be empty"})
+        return render(request, 'html/createPost.html',{"msg":"post cannot be empty",'reactions':usr['reactions']})
     
 
     
@@ -562,10 +667,12 @@ def createPostHandle(request):
     post={
         "nid": posterNid,
         "content":postContent,
-        "photo":None,
+        "photo":photo_name,
         "reaction":{
             "like":[],
         },
+        "reactors":[],
+        "reactionCount":reactionCount,
         "comment":[],
         "audience":audience,
         "type":"regular",
@@ -603,11 +710,10 @@ def followAction(request):
         usr2['followers'].append(viewernid)
         addActivity(viewernid,"started following "+usr2['name']+" at "+ str(datetime.datetime.now()))
     
-    collection.delete_one({"nid":viewernid})
-    collection.insert_one(usr)
+    updateUsr(usr)
 
-    collection.delete_one({"nid":ownernid})
-    collection.insert_one(usr2)
+    updateUsr(usr2)
+
     page=request.META.get('HTTP_REFERER')
     url="othersProfile/?nid="+ownernid
     
@@ -671,7 +777,7 @@ def othersProfile(request,nid=None):
     mynid=request.session['nid']
     if(mynid==nid):
         return redirect("profile")
-
+    fs=FileSystemStorage()
     # USER
     db=DBConnect.getInstance()
     collection=db["user"]
@@ -680,7 +786,7 @@ def othersProfile(request,nid=None):
     #posts
     collection=db["post"]
     posts=collection.find({"nid":nid})
-
+    fs= FileSystemStorage()
     allPosts=[]
     for i in posts:
         if(i["audience"]=="onlyme"):
@@ -689,12 +795,17 @@ def othersProfile(request,nid=None):
         postShow={
             "postNo":i["_id"],
             "content": i['content'],
-            "likes":len(i["reaction"]["like"]),
+            "likes":len(i['reactors']),
             "comment":comments,
             "viewers":i["audience"],
             "type":i["type"],
             "date":i['date'],
+            "reactTypes":list(i["reactionCount"].keys()),
+            "photo":None,
         }
+        if(i['photo']):
+            postShow['photo']=fs.url(i['photo'])
+        
         
         allPosts.append(postShow)
     
@@ -716,6 +827,7 @@ def othersProfile(request,nid=None):
         "country":usr['location']['country'],
         "followBtn":followBtn,
         "isFollowing":isFollowing,
+        "dp":fs.url(usr['dp']),
     }
     global noAmountToDonate
     if(noAmountToDonate):
@@ -782,6 +894,7 @@ def followersPost(request):
     allPost=collection.find()
     allPosts=[]
     collection=db["user"]
+    fs= FileSystemStorage()
     for i in allPost:
         if((i["nid"]in usr['followings'] or i["nid"]in usr['followers']  ) and (i["audience"]!="onlyme")):
             comments=getAllComment(i)
@@ -792,14 +905,18 @@ def followersPost(request):
                 "posterNid":i["nid"],
                 "postNo":i["_id"],
                 "content": i['content'],
-                "likes":len(i["reaction"]["like"]),
+                "likes":len(i["reactors"]),
                 "comment":comments,
                 "viewers":i["audience"],
                 "type":i["type"],
                 "date":i['date'],
-                
-                
+                "reactTypes":list(i["reactionCount"].keys()),
+                "photo":None,
                 }
+            
+            if(i['photo']):
+                postShow['photo']=fs.url(i['photo'])
+        
             allPosts.append(postShow)
 
 
@@ -816,7 +933,7 @@ def search(request):
     searchValue=request.GET['searchValue']
     nid=request.session["nid"]
     
-    
+    fs= FileSystemStorage()
     if(len(searchValue)==0):
         return redirect(request.META.get('HTTP_REFERER'))
     
@@ -828,6 +945,7 @@ def search(request):
     if(searchBy=='nid'):
         usr=collection.find_one({"nid":searchValue})
         results.append({
+            "dp":fs.url(usr['dp']),
             "nid":usr['nid'],
             "name":usr["name"],
             "city":usr['location']['city'],
@@ -838,6 +956,7 @@ def search(request):
         usrs=collection.find({"name":{"$regex": searchValue,"$options":'i'}})
         for usr in usrs:
             results.append({
+            "dp":fs.url(usr['dp']),
             "nid":usr['nid'],
             "name":usr["name"],
             "city":usr['location']['city'],
@@ -849,6 +968,7 @@ def search(request):
         usrs=collection.find({"location.city":{"$regex": searchValue,"$options":'i'}})
         for usr in usrs:
             results.append({
+            "dp":fs.url(usr['dp']),
             "nid":usr['nid'],
             "name":usr["name"],
             "city":usr['location']['city'],
@@ -858,6 +978,7 @@ def search(request):
         usrs=collection.find({"location.country":{"$regex": searchValue,"$options":'i'}})
         for usr in usrs:
             rslt=({
+            "dp":fs.url(usr['dp']),
             "nid":usr['nid'],
             "name":usr["name"],
             "city":usr['location']['city'],
@@ -886,19 +1007,23 @@ def search(request):
             posterNid=i["nid"]
             usr=collection.find_one({"nid":posterNid})
             results.append({
+                "dp":fs.url(usr['dp']),
                 "posterName":usr['name'],
                 "posterNid":i["nid"],
                 "postNo":i["_id"],
                 "content": i['content'],
-                "likes":len(i["reaction"]["like"]),
+                "likes":len(i["reactors"]),
                 "comment":comments,
                 "viewers":i["audience"],
                 "type":i["type"],
                 "date":i['date'],
-                
-                
+                "reactTypes":list(i["reactionCount"].keys()),
+                "photo":None
                 })
-    
+
+        if(i['photo']):
+            results[-1]['photo']=fs.url(i['photo'])
+        
 
 
     searchResult={
