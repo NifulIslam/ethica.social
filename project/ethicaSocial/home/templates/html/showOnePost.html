@@ -1,0 +1,60 @@
+
+{% extends 'html/base.html' %}
+
+{% block content %}
+    {% if msg is not none %}
+
+        {{msg}}
+        
+
+    {% endif %}
+
+
+
+<ul>
+    {% for x in posts %}
+    <br>
+      <img src= "{{x.dp}}"> 
+      <a href="{% url 'othersProfile' %}?nid={{x.posterNid}}">{{x.posterName}}</a>
+      
+      
+       <br>
+       audience:{{ x.viewers }}<br> posted on : {{x.date}}<br>
+        post:{{ x.content }}<br>
+        <a href="{% url 'viewReactions' %}?postid={{x.postNo}}">reactions: {{ x.likes }}</a><br>
+
+        {% for re in x.reactTypes %}
+          <form method="get" action="{% url 'meReact' %}">
+            <input type = "hidden" name="postid" value={{x.postNo}}>
+            <input type = "hidden" name="reactName" value={{re}}>
+            <input type = "hidden" name="reactorNid" value={{x.seeingNid}}>
+            <input type = "submit" value="{{re}}" name="reactBtn">
+          </form>
+        
+        {% endfor %}
+        <form method="get" action="{% url 'makeOtherComment' %}">
+                {% csrf_token %}
+                <input type="text" placeholder="write comment" name="comment">
+                <input type = "hidden" name="postid" value={{x.postNo}}>
+                <input type = "hidden" name="commenter" value={{x.seeingNid}}>
+                <input type = "hidden" name="nid" value={{x.nid}}>
+                <input type = "submit" value="comment" name="commentBtn">
+                
+        </form>
+        <a href="{% url 'seeTranslated' %}?postId={{x.postNo}}">translate</a><br>
+        comment:<br>
+        {% for c in x.comment %}
+          <a href="{% url 'othersProfile' %}?nid={{c.commenterNid}}">{{c.commenterName}}</a>
+          
+        {{c.comment}}
+         <br>
+           
+        {% endfor %}
+      <br><br>
+    
+    {% endfor %}
+    
+</ul>
+<a href="{% url 'showOnePost' %}">next</a>
+
+{% endblock content %}
