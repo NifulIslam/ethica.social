@@ -195,58 +195,60 @@ def activityLog(request):
 
 
 def showOnePost(request):
-    nid=request.session['nid']
-    usr=getUsr(nid)
-    usr['todayPostView']+=1
-    global showPost
-    global postNo
-    global maxReached
-    
-    if(usr['todayPostView']>=usr['maxPostView']):
-        updateUsr(usr)    
-        return render(request, 'html/showOnePost.html',{"msg":"you have reached maximum view limit"})
-
-    if(postNo==len(showPost)):
-        postNo=0
-    updateUsr(usr)
-    db=DBConnect.getInstance()
-    collection=db["post"]
-    allPost=[]
-    p=collection.find_one({"_id":ObjectId(showPost[postNo][1])})
-    allPost.append(p)
-    postNo+=1
-    postShowAll=[]
-    allPosts=[]
-    collection=db["user"]
-    fs= FileSystemStorage()
-    for i in allPost:
-        comments=getAllComment(i)
-        posterNid=i["nid"]
-        usr=collection.find_one({"nid":posterNid})
-        postShow={
-            "posterName":usr['name'],
-            "dp":fs.url(usr['dp']),
-            "posterNid":i["nid"],
-            "postNo":i["_id"],
-            "content": i['content'],
-            "likes":len(i["reactors"]),
-            "comment":comments,
-            "viewers":i["audience"],
-            "type":i["type"],
-            "date":i['date'],
-            "reactTypes":list(i["reactionCount"].keys()),
-            "photo":None,
-            "nid":i['nid'],
-            "seeingNid":nid,
-            }
+    try:
+        nid=request.session['nid']
+        usr=getUsr(nid)
+        usr['todayPostView']+=1
+        global showPost
+        global postNo
+        global maxReached
         
-        if(i['photo']):
-            postShow['photo']=fs.url(i['photo'])
-        allPosts.append(postShow)
-        
-    return render(request, 'html/showOnePost.html',{"posts":allPosts})
+        if(usr['todayPostView']>=usr['maxPostView']):
+            updateUsr(usr)    
+            return render(request, 'html/showOnePost.html',{"msg":"you have reached maximum view limit"})
 
+        if(postNo==len(showPost)):
+            postNo=0
+        updateUsr(usr)
+        db=DBConnect.getInstance()
+        collection=db["post"]
+        allPost=[]
+        p=collection.find_one({"_id":ObjectId(showPost[postNo][1])})
+        allPost.append(p)
+        postNo+=1
+        postShowAll=[]
+        allPosts=[]
+        collection=db["user"]
+        fs= FileSystemStorage()
+        for i in allPost:
+            comments=getAllComment(i)
+            posterNid=i["nid"]
+            usr=collection.find_one({"nid":posterNid})
+            postShow={
+                "posterName":usr['name'],
+                "dp":fs.url(usr['dp']),
+                "posterNid":i["nid"],
+                "postNo":i["_id"],
+                "content": i['content'],
+                "likes":len(i["reactors"]),
+                "comment":comments,
+                "viewers":i["audience"],
+                "type":i["type"],
+                "date":i['date'],
+                "reactTypes":list(i["reactionCount"].keys()),
+                "photo":None,
+                "nid":i['nid'],
+                "seeingNid":nid,
+                }
+            
+            if(i['photo']):
+                postShow['photo']=fs.url(i['photo'])
+            allPosts.append(postShow)
+            
+        return render(request, 'html/showOnePost.html',{"posts":allPosts})
 
+    except:
+        return redirect(newsFeed)
 
 def newsFeed(request):
     nid=request.session['nid']
@@ -1022,7 +1024,7 @@ def followersPost(request):
     collection=db["user"]
     fs= FileSystemStorage()
     for i in allPost:
-        if((i["nid"]in usr['followers']) and (i["audience"]!="onlyme")):
+        if((i["nid"]in usr['followings']) and (i["audience"]!="onlyme") and i['nid']!=nid):
             comments=getAllComment(i)
             posterNid=i["nid"]
             usr=collection.find_one({"nid":posterNid})
