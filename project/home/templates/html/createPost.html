@@ -1,0 +1,64 @@
+<!DOCTYPE>
+<html lang="en" dir="ltr">
+{% load static %}
+<head>
+  <meta charset="utf-8">
+  <title>Create Post</title>
+
+    <link rel="stylesheet" type="text/css" href="{% static 'css/createPoststyle.css' %}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- FontAweome CDN Link for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+</head>
+
+<body>
+  <div class="container">
+    <div class="wrapper">
+      <section class="post">
+        <header>Create Post</header>
+          {% if msg is not none %}
+
+            <script>
+
+              alert("{{msg}}");
+
+            </script>
+            {% endif %}
+        <form method="post" action="{% url 'createPostHandle' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="content">
+            <img src="{{dp}}" alt="logo">
+            <div class="details">
+              <p>{{name}}</p>
+              <select name="audience">
+                <option value="public">public</option>
+                <option value="followers">followers</option>
+                <option value="onlyme">only me</option>
+              </select>
+            </div>
+          </div>
+          <textarea name="postcontent" placeholder="What's on your mind, ....." spellcheck="false" required></textarea>
+          <div class="theme-emoji">
+
+            <input type="file" name="photo">
+          </div>
+          <div >
+            <input class="options" type="text" name="tags" placeholder="add tags seperated by space">
+          </div>
+
+          {% for i in reactions %}
+            <input type="checkbox" name="reaction" value="{{i}}"> {{i}}
+            {% endfor %}
+          <button name="create">Post</button>
+        </form>
+      </section>
+
+    </div>
+  </div>
+
+
+
+
+</body>
+
+</html>
