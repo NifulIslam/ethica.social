@@ -1,6 +1,7 @@
 # install  `django` `pymongo` `pymongo[srv]` `requests` , `googletrans [version 3.1.0a0]` , `spacy` , `nltk` , `opencv`
 with command 
 >pip install  _name_
+>
 >pip install googletrans==3.1.0a0
 
 >pip install -U pip setuptools wheel
